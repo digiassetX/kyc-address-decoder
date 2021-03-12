@@ -1,0 +1,22 @@
+{
+  "name": "kyc-address-decoder",
+  "version": "1.0.0",
+  "description": "Function to check if a transaction is KYC verified or revoke transaction",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Matthew Cornelisse",
+  "license": "MIT",
+  "dependencies": {
+    "bit-io": "^1.0.4"
+  },
+  "devDependencies": {
+    "nodeunit": "^0.11.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/digiassetX/kyc-address-decoder"
+  }
+}
