@@ -75,31 +75,31 @@ const compareBuffer=(a,b)=>{
  * @return {KycPublic|KycSecret|boolean}
  */
 const kycCert=(txData,name,pin)=>{
-    //quick checks to make sure valid format
-    if (
-        (txData.vout.length!==3) ||                                                 //wrong number of outputs
-        (txData.vout[0].value!=="600") ||                                           //output 0 should be 600 sat
-        (txData.vout[1].value!=="0") ||                                             //output 1 should be 0 sat
-        (txData.vout[0].scriptPubKey.addresses.length!==1) ||                       //output 0 has only 1 address
-        (txData.vout[2].scriptPubKey.addresses.length!==1)                          //output 2 has only 1 address
-    ) return false;
-
-    //find validator
-    let lastInput=txData.vin.length-1;                                              //get index of last input
-    if (txData.vin[lastInput].scriptPubKey.addresses.length!==1) return false;      //make sure last input has only 1 output
-    let found=false;
-    for (let {address,start,end=infinity} of kycValidators) {                       //go through each validator
-        if (address!==txData.vin[lastInput].scriptPubKey.addresses[0]) continue;    //check if validators address
-        found=((txData.height>=start)&&(txData.height<=end));                       //check if within the correct range
-        break;                                                                      //no need to check more validators since address can only be in lst once
-    }
-    if (!found) return false;
-
-    //get address that was validated
-    let address=txData.vout[0].scriptPubKey.addresses[0];
-
-    //get encoded data
     try {
+        //quick checks to make sure valid format
+        if (
+            (txData.vout.length!==3) ||                                                 //wrong number of outputs
+            (txData.vout[0].value!=="600") ||                                           //output 0 should be 600 sat
+            (txData.vout[1].value!=="0") ||                                             //output 1 should be 0 sat
+            (txData.vout[0].scriptPubKey.addresses.length!==1) ||                       //output 0 has only 1 address
+            (txData.vout[2].scriptPubKey.addresses.length!==1)                          //output 2 has only 1 address
+        ) return false;
+
+        //find validator
+        let lastInput=txData.vin.length-1;                                              //get index of last input
+        if (txData.vin[lastInput].scriptPubKey.addresses.length!==1) return false;      //make sure last input has only 1 output
+        let found=false;
+        for (let {address,start,end=infinity} of kycValidators) {                       //go through each validator
+            if (address!==txData.vin[lastInput].scriptPubKey.addresses[0]) continue;    //check if validators address
+            found=((txData.height>=start)&&(txData.height<=end));                       //check if within the correct range
+            break;                                                                      //no need to check more validators since address can only be in lst once
+        }
+        if (!found) return false;
+
+        //get address that was validated
+        let address=txData.vout[0].scriptPubKey.addresses[0];
+
+        //get encoded data
         let bitStreamA = new BitIO();                                               //create bitstream
         bitStreamA.appendHex(txData.vout[1].scriptPubKey.hex);                      //add data that was on output 1
         if (bitStreamA.getBitcoin() !== "OP_RETURN") return false;                  //make sure first opcode is OP_RETURN
@@ -152,18 +152,18 @@ const kycCert=(txData,name,pin)=>{
  * @return {KycRevoke|boolean}
  */
 const kycRevoke=(txData)=>{
-    //quick checks to make sure valid format
-    if (
-        (txData.vout.length<2) ||                                                   //wrong number of outputs
-        (txData.vin.length!==1) ||                                                  //wrong number of inputs
-        (txData.vin[0].scriptPubKey.addresses.length!==1) ||                        //input 0 has only 1 address
-        (txData.vout[0].value!=="601") ||                                           //output 0 should be 601 sat
-        (txData.vout[1].value!=="0") ||                                             //output 1 should be 0 sat
-        (txData.vout[0].scriptPubKey.addresses.length!==1)                          //output 0 has only 1 address
-    ) return false;
-
-    //get encoded data
     try {
+        //quick checks to make sure valid format
+        if (
+            (txData.vout.length < 2) ||                                                   //wrong number of outputs
+            (txData.vin.length !== 1) ||                                                  //wrong number of inputs
+            (txData.vin[0].scriptPubKey.addresses.length !== 1) ||                        //input 0 has only 1 address
+            (txData.vout[0].value !== "601") ||                                           //output 0 should be 601 sat
+            (txData.vout[1].value !== "0") ||                                             //output 1 should be 0 sat
+            (txData.vout[0].scriptPubKey.addresses.length !== 1)                          //output 0 has only 1 address
+        ) return false;
+
+        //get encoded data
         let bitStreamA = new BitIO();                                               //create bitstream
         bitStreamA.appendHex(txData.vout[1].scriptPubKey.hex);                      //add data that was on output 1
         if (bitStreamA.getBitcoin() !== "OP_RETURN") return false;                  //make sure first opcode is OP_RETURN
@@ -171,21 +171,22 @@ const kycRevoke=(txData)=>{
         if (!Buffer.isBuffer(opReturnData)) return false;                           //if anything other then a buffer its invalid
         let bitStreamB = BitIO.fromBuffer(opReturnData);                            //create new bitstream from hex data encoded in stream
         if (bitStreamB.get3B40(3) !== "kyc") return false;                          //make sure beginning of data is "kyc" in 3B40 encoding
+
+
+        //get address that was revoked
+        let revokeAddress = txData.vin[0].scriptPubKey.addresses[0];
+
+        //find validator
+        for (let {address} of kycValidators) {                                          //go through each validator
+            if (address !== txData.vout[0].scriptPubKey.addresses[0]) continue;           //check if validators address
+            return {
+                type: "KycRevoke",
+                address: revokeAddress,
+                height: txData.height
+            };
+        }
     } catch (e) {
-        return false;
-    }
-
-    //get address that was revoked
-    let revokeAddress=txData.vin[0].scriptPubKey.addresses[0];
-
-    //find validator
-    for (let {address} of kycValidators) {                                          //go through each validator
-        if (address!==txData.vout[0].scriptPubKey.addresses[0]) continue;           //check if validators address
-        return {
-            type:   "KycRevoke",
-            address:revokeAddress,
-            height: txData.height
-        };
+        //lazy catch if values are not defined its obviously false
     }
     return false;
 }

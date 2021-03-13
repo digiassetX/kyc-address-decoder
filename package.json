@@ -1,6 +1,6 @@
 {
   "name": "kyc-address-decoder",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Function to check if a transaction is KYC verified or revoke transaction",
   "main": "index.js",
   "scripts": {
