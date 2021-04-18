@@ -1,7 +1,7 @@
 const BitIO=require('bit-io');
 const crypto=require('crypto');
 
-require('./types');             //get streaming service types
+require('digiassetx-digibyte-stream-types');             //get streaming service types
 
 /**
  * @typedef {{
@@ -78,12 +78,13 @@ const kycCert=(txData,name,pin)=>{
     try {
         //quick checks to make sure valid format
         if (
-            (txData.vout.length!==3) ||                                                 //wrong number of outputs
-            (txData.vout[0].value!=="600") ||                                           //output 0 should be 600 sat
-            (txData.vout[1].value!=="0") ||                                             //output 1 should be 0 sat
+            ((txData.vout.length!==3)&&(txData.vout.length!==4)) ||                     //wrong number of outputs
+            (BigInt(txData.vout[0].value)!==600n) ||                                           //output 0 should be 600 sat
+            (BigInt(txData.vout[1].value)!==0n) ||                                             //output 1 should be 0 sat
             (txData.vout[0].scriptPubKey.addresses.length!==1) ||                       //output 0 has only 1 address
             (txData.vout[2].scriptPubKey.addresses.length!==1)                          //output 2 has only 1 address
         ) return false;
+
 
         //find validator
         let lastInput=txData.vin.length-1;                                              //get index of last input
@@ -158,8 +159,8 @@ const kycRevoke=(txData)=>{
             (txData.vout.length < 2) ||                                                   //wrong number of outputs
             (txData.vin.length !== 1) ||                                                  //wrong number of inputs
             (txData.vin[0].scriptPubKey.addresses.length !== 1) ||                        //input 0 has only 1 address
-            (txData.vout[0].value !== "601") ||                                           //output 0 should be 601 sat
-            (txData.vout[1].value !== "0") ||                                             //output 1 should be 0 sat
+            (BigInt(txData.vout[0].value) !== 601n) ||                                           //output 0 should be 601 sat
+            (BigInt(txData.vout[1].value) !== 0n) ||                                             //output 1 should be 0 sat
             (txData.vout[0].scriptPubKey.addresses.length !== 1)                          //output 0 has only 1 address
         ) return false;
 
